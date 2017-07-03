@@ -1,5 +1,11 @@
 
 /**
+ * genList.
+ */
+ 
+ var genList = [];
+
+/**
  * slice() reference.
  */
 
@@ -43,6 +49,8 @@ co.wrap = function (fn) {
 function co(gen) {
   var ctx = this;
   var args = slice.call(arguments, 1);
+  
+  genList.push(gen)
 
   // we wrap everything in a promise to avoid promise chaining,
   // which leads to memory leak errors.
@@ -62,6 +70,7 @@ function co(gen) {
     function onFulfilled(res) {
       var ret;
       try {
+		var gen = genList[genList.length - 1]
         ret = gen.next(res);
       } catch (e) {
         return reject(e);
@@ -79,6 +88,7 @@ function co(gen) {
     function onRejected(err) {
       var ret;
       try {
+		var gen = genList[genList.length - 1]
         ret = gen.throw(err);
       } catch (e) {
         return reject(e);
@@ -96,7 +106,10 @@ function co(gen) {
      */
 
     function next(ret) {
-      if (ret.done) return resolve(ret.value);
+      if (ret.done) {
+		  genList.pop();
+		  return resolve(ret.value);
+	  }
       var value = toPromise.call(ctx, ret.value);
       if (value && isPromise(value)) return value.then(onFulfilled, onRejected);
       return onRejected(new TypeError('You may only yield a function, promise, generator, array, or object, '
